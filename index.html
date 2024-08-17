@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo List Application</title>
+    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap");
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Poppins", sans-serif;
+        }
+        body {
+            background-color: #282c34;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 400px;
+            width: 100%;
+            padding: 30px;
+            background-color: #20232a;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .input-field {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .input-field textarea {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #61dafb;
+            border-radius: 8px;
+            font-size: 16px;
+            resize: none;
+            color: #fff;
+            background-color: #282c34;
+        }
+        .input-field textarea:focus {
+            border-color: #21a1f1;
+        }
+        .input-field i {
+            margin-left: 10px;
+            font-size: 24px;
+            color: #61dafb;
+        }
+        .todoLists {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .todoLists .list {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #3a3f47;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+            color: #fff;
+        }
+        .todoLists .list:hover {
+            background-color: #4b515a;
+        }
+        .todoLists .list input {
+            margin-right: 10px;
+            accent-color: #61dafb;
+        }
+        .todoLists .task {
+            flex: 1;
+            word-break: break-all;
+        }
+        .todoLists .list input:checked ~ .task {
+            text-decoration: line-through;
+            color: #b0b0b0;
+        }
+        .todoLists .list i {
+            color: #61dafb;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+        }
+        .todoLists .list i:hover {
+            opacity: 1;
+        }
+        .pending-tasks {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            color: #61dafb;
+        }
+        .pending-tasks .clear-button {
+            padding: 8px 14px;
+            background-color: #61dafb;
+            color: #20232a;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            pointer-events: none;
+        }
+        .clear-button:hover {
+            background-color: #21a1f1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="input-field">
+            <textarea placeholder="Enter your new todo"></textarea>
+            <i class="uil uil-notes note-icon"></i>
+        </div>
+        <ul class="todoLists"></ul>
+        <div class="pending-tasks">
+            <span>You have <span class="pending-num">no</span> tasks pending.</span>
+            <button class="clear-button">Clear All</button>
+        </div>
+    </div>
+    <script>
+        const inputField = document.querySelector(".input-field textarea"),
+              todoLists = document.querySelector(".todoLists"),
+              pendingNum = document.querySelector(".pending-num"),
+              clearButton = document.querySelector(".clear-button");
+
+        let todos = JSON.parse(localStorage.getItem("todo-list")) || [];
+
+        const updatePendingTasks = () => {
+            const tasks = document.querySelectorAll(".todoLists .pending");
+            pendingNum.textContent = tasks.length || "no";
+            clearButton.style.pointerEvents = tasks.length ? "auto" : "none";
+        };
+
+        const saveToLocalStorage = () => {
+            localStorage.setItem("todo-list", JSON.stringify(todos));
+        };
+
+        const addTask = (taskText) => {
+            const newTask = { name: taskText, status: "pending" };
+            todos.push(newTask);
+            renderTasks();
+            saveToLocalStorage();
+        };
+
+        const renderTasks = () => {
+            todoLists.innerHTML = todos.map((todo, index) => `
+                <li class="list ${todo.status}" data-index="${index}">
+                    <input type="checkbox" ${todo.status === "completed" ? "checked" : ""}/>
+                    <span class="task">${todo.name}</span>
+                    <i class="uil uil-pen" onclick="editTask(${index})"></i>
+                    <i class="uil uil-trash" onclick="deleteTask(${index})"></i>
+                </li>
+            `).join("");
+            updatePendingTasks();
+        };
+
+        inputField.addEventListener("keyup", (e) => {
+            const inputVal = inputField.value.trim();
+            if (e.key === "Enter" && inputVal) {
+                if (isEditTask) {
+                    todos[editId].name = inputVal;
+                    isEditTask = false;
+                } else {
+                    addTask(inputVal);
+                }
+                inputField.value = "";
+                renderTasks();
+                saveToLocalStorage();
+            }
+        });
+
+        let isEditTask = false, editId;
+        const editTask = (id) => {
+            isEditTask = true;
+            editId = id;
+            inputField.value = todos[id].name;
+            inputField.focus();
+        };
+
+        const deleteTask = (id) => {
+            todos.splice(id, 1);
+            renderTasks();
+            saveToLocalStorage();
+        };
+
+        todoLists.addEventListener("click", (e) => {
+            if (e.target.tagName === "INPUT") {
+                const index = e.target.closest("li").dataset.index;
+                todos[index].status = e.target.checked ? "completed" : "pending";
+                renderTasks();
+                saveToLocalStorage();
+            }
+        });
+
+        clearButton.addEventListener("click", () => {
+            todos = [];
+            renderTasks();
+            saveToLocalStorage();
+        });
+
+        renderTasks();
+    </script>
+</body>
+</html>
